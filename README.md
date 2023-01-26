@@ -13,18 +13,20 @@ tesseract >= 4.0
 
 ```
 git clone https://github.com/DaniilProgMath/license-plate-recognition.git
+cd license-plate-recognition
+pip install torch==1.9.1 torchvision==0.10.1 -f https://download.pytorch.org/whl/torch_stable.html
+pip install -r requirements.txt
+cd ..
 git clone https://github.com/ultralytics/yolov5.git
 cd yolov5
 git checkout v6.0-218-g7539cd7
-pip install -r requirements.txt
-cd ..\license-plate-recognition
 pip install -r requirements.txt
 ```
 
 
 ## Testing
 ```
-python main.py
+python main.py --image-path \some_image_path\image.jpg
 ```
 
 ## Work Examples
