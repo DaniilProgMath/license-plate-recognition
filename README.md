@@ -23,5 +23,12 @@ pip install -r requirements.txt
 
 
 ## Testing
-
+```
 python main.py
+```
+
+## Work Examples
+
+![Image alt](https://github.com/DaniilProgMath/license-plate-recognition/raw/develop/work_examples/img_3.jpg)
+![Image alt](https://github.com/DaniilProgMath/license-plate-recognition/raw/develop/work_examples/img_10.jpg)
+![Image alt](https://github.com/DaniilProgMath/license-plate-recognition/raw/develop/work_examples/img_5.jpg)
