@@ -1,15 +1,20 @@
 import os
 import cv2
 import torch
+import argparse
 import numpy as np
 import pytesseract
 from PIL import Image, ImageDraw, ImageFont
 
-pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
-image_dir = "images"
+# Объявление пути до ядра tesseract
+pytesseract.pytesseract.tesseract_cmd = \
+    r'C:\Program Files\Tesseract-OCR\tesseract.exe'
 
 
 def load_car_plate_detection_model(ckpt_path=r'weights\best.pt'):
+    """
+    Загрузка модели и её весов yolov5
+    """
     yolov5 = torch.hub.load('..\yolov5',
                             'custom',
                             path=ckpt_path,
@@ -19,6 +24,9 @@ def load_car_plate_detection_model(ckpt_path=r'weights\best.pt'):
 
 
 def run_yolo_plate_detection(img):
+    """
+    Инференс детектора
+    """
     model = load_car_plate_detection_model()
     pred = model(img, size=1280, augment=False)
     bbox_objects = list()
@@ -29,6 +37,10 @@ def run_yolo_plate_detection(img):
 
 
 def filter_wrong_char(tesseract_predicted_text):
+    """
+    Очистка результата распознования номера от символов
+    которых там быть не должно.
+    """
     car_key_symbols = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789"
     car_key_symbols += "АВЕКМНОРСТУХ"
     filtered_text = ""
@@ -39,17 +51,26 @@ def filter_wrong_char(tesseract_predicted_text):
 
 
 def run_symbol_recognition(img, car_plate_bboxes):
+    """
+    Применение tesseract для распознавания символов.
+    """
     for i, bbox in enumerate(car_plate_bboxes):
-        img_cropped = img[int(bbox['ymin']):int(bbox['ymax']), int(bbox['xmin']):int(bbox['xmax'])]
+        img_cropped = img[int(bbox['ymin']):int(bbox['ymax']),
+                      int(bbox['xmin']):int(bbox['xmax'])]
         gray = cv2.cvtColor(img_cropped, cv2.COLOR_BGR2GRAY)
         rectKern = cv2.getStructuringElement(cv2.MORPH_RECT, (13, 5))
         blackhat = cv2.morphologyEx(gray, cv2.MORPH_BLACKHAT, rectKern)
-        tesseract_predicted_text = pytesseract.image_to_string(blackhat, lang="eng+rus", config="--oem 1")
-        car_plate_bboxes[i]["text"] = filter_wrong_char(tesseract_predicted_text)
+        tesseract_predicted_text = pytesseract.image_to_string(blackhat,
+                                        lang="eng+rus", config="--oem 1")
+        car_plate_bboxes[i]["text"] = filter_wrong_char(
+            tesseract_predicted_text)
     return car_plate_bboxes
 
 
 def draw_bboxes_and_plate_number(image, car_plate_data):
+    """
+        Отрисовка результатов детекции и распознаных символов на изображении.
+    """
     image_with_detections = np.copy(image)
     for car_plate in car_plate_data:
         pt1 = [int(car_plate['xmin']), int(car_plate['ymin'])]
@@ -63,6 +84,9 @@ def draw_bboxes_and_plate_number(image, car_plate_data):
 
 
 def print_unicode_symbols_on_image(image, text, coords):
+    """
+    Функция для отрисовки русских букв на изображении.
+    """
     image = cv2.cvtColor(image, cv2.COLOR_BGR2RGB)
     pil_image = Image.fromarray(image)
 
@@ -78,6 +102,9 @@ def print_unicode_symbols_on_image(image, text, coords):
 
 
 def run_car_plate_recognition(img_path):
+    """
+    Общая функция системы.
+    """
     image = cv2.imread(img_path)
     car_plate_bboxes = run_yolo_plate_detection(image)
     car_plate_bboxes = run_symbol_recognition(image, car_plate_bboxes)
@@ -88,6 +115,17 @@ def run_car_plate_recognition(img_path):
 
 if not os.path.isdir("predicted_image"):
     os.mkdir("predicted_image")
-image_names = os.listdir(image_dir)
-for name in image_names:
-    run_car_plate_recognition(os.path.join(image_dir, name))
+
+parser = argparse.ArgumentParser(
+                    prog = 'license-plate-recognition',
+                    description = 'Решение тестового задания ' + \
+                                  'для компании ZeBrains. ' + \
+                                  'Система распознавания номеров машин.' + \
+                    'Реализована как предобученный ' + \
+                    'детектор на базе yolov5 + распознавание ' + \
+                    'символов через tesseract LSTM. ' + \
+                    'Скрипт написан под windows.')
+parser.add_argument('--image-path')
+args = parser.parse_args()
+
+run_car_plate_recognition(args.image_path)
